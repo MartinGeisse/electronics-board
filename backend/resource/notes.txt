@@ -1,0 +1,53 @@
+
+yarn base command: yarn --no-default-rc --ignore-engines
+npm base command: npm --userconfig=/dev/null --ignore-engines
+-----------------------------------------------
+
+There won't be a lot of business logic in this backend. There will be:
+- code to merge event branches
+- the hardware simulator, which is mostly separate from the rest
+
+In order to get anything working at all, it's probably best to build a collaborative schematic editor first, i.e.
+events only, no simulator. No multi-board, no multi-tenancy.
+
+v1: editor
+
+v2: The simulator does not need to persist any data. It is set up based on the editor state, then runs independently
+    and just gets restarted when the editor state changes.
+
+API:
+- event API: getEvents, +from, +resume (includes snapshot handling), +insert, live stream
+- HW sim: turn on/off, HW input, HW output, output live stream
+
+Editor:
+- separation of logic (event types; merging) and persistence (event store) probably still useful, but persistence is
+    very generic because it handles transparent JSONable event objects.
+
+-------------------------------------------
+board object IDs:
+
+problem from the client:
+// TODO problem: if we use the event ID as object ID, then objects cannot exist until the event has been
+// returned from the server. Locally generated IDs won't be equal to server IDs! Does event transformation
+// fix this? No, at least not transformation alone, because we still cannot match client-side IDs with
+// server-side IDs. But this is related to matching client-side creation events with server-side creation
+// events.
+// We can, of course, use client-generated object IDs (e.g. UUIDs) as the only IDs, transfer them to the
+// server and just publish them. That would be okay for v1.
+
+-> v1: use client-generated IDs and publish them.
+
+-----------------------------------------------
+Having the merging logic on the client and server is bad. Even worse, having the event data structure on both is worse,
+and there isn't even any server-side logic beyond merging that *needs* that structure as Java classes. Validation of
+the JSON structure would be enough.
+
+-----------------------------------------------
+font scaling:
+
+font-size and transform seem to have an equal effect on the rendered text, that is, the glyphs do not change their
+appearance based on font-size. At a factor of 1000, slight differences appear that seem more like rounding issues,
+but that's okay -- we don't need both to look exactly the same, as long as neither produces any visible artifacts.
+Chrome hides the text at a font-size of <= 0.5 which is also not a problem for us.
+
+

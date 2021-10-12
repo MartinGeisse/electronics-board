@@ -1,0 +1,16 @@
+
+BoardPage is large. The split between BoardPage and Board is not well-defined. Bugs occur when the BoardPage gets
+re-rendered.
+
+First idea: Introduce a BoardController that is used by the BoardPage but lives on when the BoardPage gets rendered.
+
+BUT: What is the difference between the BoardController and the Board then?
+
+Second idea: Merge the two, then re-split along different lines, e.g. an InputInterpreter that understands mouse
+clicks and keyboard codes. Maybe even extract that first if it simplifies the merge.
+->
+    The InputInterpreter would probably contain most of the code that would otherwise go into the BoardController,
+    but now there is no obligation that the Board is agnostic to the transform, screen coordinates, HTML canvas
+    etc. (which it isn't anyway).
+    ...
+    renamed "InputInterpreter" to "BoardEventHandler", that's more obvious.

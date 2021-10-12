@@ -1,0 +1,10 @@
+
+If reconfiguration of an object invalidates wires, e.g. configure an N-bit inverter to an (N-1)-bit inverter,
+then these wires must be removed immediately. It is not enough to check at some crucial point whether the wires' nodes
+still exist, because then the user might configure the chip back and the wires re-appear. While this sounds harmless,
+it means that now the board's behaviour depends on where these "crucial points" are placed, and might easily
+de-synchronize between the server/client and another client.
+
+The above, by itself, only means that wire removal must be well-defined. However, we don't want wires to re-appear at
+some later time unexpectedly. So the easiest solution is to define that wires must be removed immediately when one
+of their nodes is removed.

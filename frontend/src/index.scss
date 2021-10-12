@@ -1,0 +1,45 @@
+
+body {
+  background: white;
+
+  margin: 0;
+
+  // Even though we specify a fixed height (no min- or max-) here, the page is
+  // still being able to overflow vertically, so this is more of a min-height.
+  // If you would actually use min-height here, it does not work for some
+  // reason (e.g. the background on the login page does not occupy the full
+  // page height).
+  height: 100vh;
+
+  // This prevents the page from still being 100vw wide when a vertical scroll
+  // bar is shown, which would otherwise lead to the page also overflowing
+  // horizontally.
+  width: 100vw;
+  max-width: 100%;
+
+  font-family: "Roboto", Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  // sub-elements must enable scrolling if they want it, but the board view won't size corrently if the body is
+  // even *allowed* to add scrollbars!
+  overflow: hidden;
+}
+
+.root {
+  min-height: 100%;
+  min-width: 100%;
+}
+
+* {
+  /**
+    *  This is nessessary because of the user agent stylesheet of the browsers.
+    */
+  font-family: "Roboto", Arial, Helvetica, sans-serif;
+
+  font-size: 16px;
+  // This resets the browser to use saner defaults
+  box-sizing: border-box;
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500");

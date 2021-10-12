@@ -1,0 +1,65 @@
+
+For simple objects (e.g. clock source), the property dialog should not just show values and delegate to another,
+second dialog for editing. It should allow to edit directly. But autosaving everything leads to inconsistent results
+and lots of updates to the simulation model in more complex objects.
+
+So for simple objects, a single dialog with ok/cancel buttons would be perfect. But for more complex objects, maybe
+"inner editing" would be better? Decision: use ok/cancel at the dialog level for everything, even for more
+complex objects. Consequently, "inner cancel" is rarely applicable, if ever. This also means that everthing that
+happens inside a dialog must be temporary until committed, even when it is about git-pulling the code for a chip.
+(Implementation: git pull to a temporary folder, then copy the code when the OK button gets clicked).
+
+I'll just demand this scheme for everything and let's see if that runs into problems.
+
+-------------------
+
+Problem: In a multi-tab dialog content, the "outer OK button" might detect validation errors in a diffent tab than
+the current one, or in multiple tabs at the same time. Autosave has a similar problem: The user might leave the
+dialog in an invalid state. Using the latest valid value for that field sounds confusing and does not solve the
+case for cross-field validation errors.
+
+Solutions:
+- deal with this error as-is. Prevent closing the dialog, mark the invalid fields as such; mark tabs with invalid
+    fields. Probably not the worst thing to do.
+    -> I like this more
+- remove the cancel/ok scheme from the dialog itself and allow inner forms.
+    - requires extra steps / clicks to enter the inner edit mode.
+    - may be confusing for cross-tab validation errors, since each tab must be validatable by itself. This might even
+        require one tab to change the values in another tab. But cross-tab issues should be avoided anyway.
+
+Implementation:
+A generic BoardObjectDialog that *contains* the board-object-specific content might not be the best solution. Maybe
+it is better to have the board object create a dialog component that runs without a specific outer container, and
+provide the dialog as a utility component to be used for that.
+...
+But that has its problems too. What about having the DialogContentModel provide a content component AND a dialog
+wrapper component, with the DWC holding the state being edited? The DWC could then contain the <Formik> element
+for single-tab and multi-tab editing, so only a single form gets used. It could also provide a submit() method for the
+OK button.
+...
+Alternatively, similar to a "standard DWC that gets used all the time", the dialog could use a <Formik> element that,
+if no forms are needed, simply has no fields. This seems simpler, so try that first. This means that the dialog
+content component (provided by the content model) must accept the formik render props in one of its attributes.
+It might also take data from the board object as an attribute, but there is no reason why it shouldn't get that data
+from a closure, and using an attribute means that the dialog must take and provide that data for no good reason. It
+would be much more complex than necessary. So take board object data form a closure. Note that this data must be
+copied to detach from changes due to incoming events from other users.
+- This contradicts the idea of operational transformation, but I don't really have a good idea how to mix OT with
+    the dialog's ok/cancel scheme anyway. Maybe, in the long run, OT isn't really useful for this project.
+
+-------------------
+
+Next Problem:
+Form inputs might be needed to perform actions. For example, a git URL must be entered to pull the code. If the
+URL is invalid, pulling is not possible, and if the URL is changed, the new URL must be used for pulling. This means
+that actions *inside* the dialog require form validation / processing! The form can therefore not be at the dialog
+level. For simple components like the clock source, having it at the dialog level would be better.
+
+The best way to solve this is to allow different schemes, which in turn means that the whole dialog must be provided
+by the board object. The above solution with the dialog(s) being utility components would be the right choice here.
+The disadvantages of this scheme are then probably inevitable -- the main one being that the dialogs "could" differ,
+which is now considered a feature instead of a problem!
+
+
+
+

@@ -1,0 +1,23 @@
+
+natural (application) coordinates:
+- electronics: might have natural coordinates at first, but if a component gets subdivided into smaller components
+    this quickly breaks down, unless one wants to re-arrange all other components
+- buildings / architecture: will probably use 1m as the natural unit
+- UI mockups: might use pt or px as their natural unit
+- sketches: no natural unit at all
+->
+The application level may add natural units, but the underlying mechanics should not use them.
+
+quantum coordinates:
+If using integers to represent a position, then there is a smallest step in coordinates (quantum).
+If using floats to represent a position, a similar problem occurs depending on the distance to the origin,
+    which is even worse.
+Solution: Use integers and a small quantum. Use 32-bit integers if possible, 64-bit if necessary to keep the
+quantum small enough.
+
+Not using natural coordinates means that rectangular board objects cannot have a natural size. For example, a component
+in electronics does not have a natural size because there is no reference. Actual component size therefore cannot be
+expressed as a scaling factor compared to its natural size, but must be expressed as a number of quanta instead.
+.
+Due to the difference between rectangular objects and e.g. wires, all size and scaling is then handled specific to the
+object type.

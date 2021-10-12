@@ -1,0 +1,63 @@
+
+Do we want X as a logic level? (Note that Z is a different story. We might eliminate Z as an explicit logic level and
+only implement it as a possible driver state. But explicit Z is nice for unconnected wires. But then, in unconnected
+wires it is similar to X)
+
+What X is needed for:
+- initial register state. This requires the user to use an explicit reset signal, except for FFs that are force-loaded
+    later anyway.
+    - We'll allow for auto-initialized registers (with configurable initial value) for convenience anyway
+    - The transition of such a "poor" simulation to a real circuit might call for a mode in which auto-initialization
+        values are ignored and randomized instead.
+- interpretation of Z (including unconnected input ports)
+    - many chips are going to use phantom pull resistors for convenience anyway.
+    - The transition of such a "poor" simulation to a real circuit should be guided anyway, including reporting
+        unconnected input ports without changing the simulation.
+    - formal verification that can simulate a state superposition is a separate tool anyway
+    -> NOT A PROBLEM
+- contention
+    -> *** THIS IS A PROBLEM!
+- setup / hold violation
+    - again, report this during simulation, use better tools for static analysis, and just do "anything" in sim
+
+What X is needed for once it exists:
+- X propagation
+    This is the main reason I  don't like X, because for complex things like a CPU, X propagation is not well-defined.
+    It cannot be, because X represents a superposition of 0 and 1, and *proper* X propagation does not result in
+    multiple registers containing X, but in a superposition of the state of the whole register *set* (i.e.
+    entangled registers). This falls into the domain of formal verification!
+
+----------------------------------------------------------------------------------------------------------------
+
+This looks like contention is the only real problem that X is needed for. Again, we can report this and define it to
+be fixed 0 (or 1). Whether that is a good solution depends on what this whole application is intended for!
+- "circuit brainstorming", rapid prototyping, product development
+    - will need easy to use tools. Imprecision during simulation is not harmful. Results must be easy to understand.
+    - Wrong behaviour in simulation is still better than an error message (and X is similar to an error message)
+- hardware development
+    - will need the most rigorous tools possible. Our simulator won't be up to this task anyway.
+
+-> This suggests to remove X.
+----------------------------------------------------------------------------------------------------------------
+
+Also, we need Z only to resolve the value of a single wire. With transmission gates, this extends to resolving the
+value of a "superwire", but nothing more. So we should also remove Z.
+-> use two-values logic everywhere
+-> Only drivers have three states: HIGH, LOW and OFF. While OFF is similar to Z, it is a driver state, not a logic
+    level
+
+PROBLEM: We cannot implement phantom pull resistors this way, because the wire itself wants to have a well-defined
+value. Different inputs would like to use different phantom pull resistors, e.g. 0 for an OR gate and 1 for an AND
+gate.
+
+-> Z is still useful.
+-> If we keep Z then LogicValue is still useful too (as a wire value, not internally inside a processor -- boolean
+    makes more sense there).
+
+Conclusion:
+- keep Z
+- consider removing X
+->
+Yes, remove X. Model primitive implementors wouldn't know how to handle it, and for users, it only gives a tiny
+advantage (and only when optimizing for correctness) while causing a lot of confusion and complicating the UI.
+

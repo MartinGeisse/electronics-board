@@ -1,0 +1,9 @@
+
+To make this work, we have to disable type checking for the raw data from the server, since raw data is missing
+the methods. This is okay since any type "checking" here is an illusion anyway.
+
+So CreateObjectEvent now carries data of type "any". It only becomes a BoardObject when that event gets processed
+in the frontend.
+
+But this also means that createObject() has no type safety since it constructs an event -> change that, have it take
+and object and extract properties from it.

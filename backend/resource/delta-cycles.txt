@@ -1,0 +1,107 @@
+
+I first wanted to use no delta cycles to keep it simple, then use delta cycles bcause it seemed even simpler.
+
+Now, delta cycles seem to have a problem: Multiple gates can change their outputs at once (e.g. registers after a clock
+edge, then a delta cycle later, logic gates). This will produce changes that, in a simple solution, are processed one
+delta cycle later. This either
+- causes fake glitches when one gate first changes a net value, later another gate changes it back
+- must be handled in multiple delta cycles: first nets, then components, then nets again, then components again --
+    with problems if one component violates this order
+- changes must be batched, so components cannot act independently
+
+This is not simple at all. Can we live without delta cycles?
+- The reason for delta cycles was to implement zero-delay gates.
+- If we do this without delta cycles, an asynchronous cycle causes the simulator to lock up in an infinite loop
+    - with delta cycles, this becomes a "soft loop" of infinite delta cycles
+- Fake glitches will still occur. A Component listening to such a net must perform edge detection itself.
+    - but then, it could do so with delta cycles.
+
+The problem happens at two places:
+- two independent net changes can change the output of a logic gate (component) and back
+- two independent driver changes can change the output of a (bus) net and back
+
+----------------------------------------------------------------------------------------------------------------
+
+Can we solve this with delta cycles?
+For logic gates, these can be handled the same if the gate has no delay: Two independent net changes change the
+gate's driver and back, immediately changing its output net and back, but those changes are handled in a delta
+cycle. (I assume this is how Verilog handles things, since a logic gate is implemented by an assignment that drives
+a net).
+Things are not so easy for more complex components.
+
+Can we solve this without delta cycles?
+Not having delta cycles is very appealing because it is much less surprising for the user.
+e.g. bugs due to clock copying
+BUT:
+- simultaneous changes in different nets can still occur
+- simultaneous changes in different drivers can still occur
+- zero-delay components can create a zero-delay asynchronous loop
+
+Solution:
+- use a minimum delay for all components. This will make things more understandable since things now happen in
+    nonzero time, but it does not solve any other problem.
+- batch multiple simultaneous changes too the same net. This is easy to do inside the Net class. Only a single
+    output call to listeners will be generated, and only if the net value actually changes.
+- for components, things are more tricky and cannot be handled in general since the possible components are
+    unbounded.
+    - For asynchronous gates, multiple input changes will simply cause multiple changes to the output net,
+        which are then batched.
+    - For a single-clock component, only the clock edge is relevant, and due to batching there won't be multiple
+        edges.
+    - Simultaneous changes in a clock net and logic inputs, as well as multiple clock nets, produce unpredictable
+        results in reality too.
+        -> however, we might be "worse than verilog" here because we execute simultaneous events in an
+            undefined order (but doesn't verilog do that too?)
+--> it is then important that components are always connected by nets, never directly, because nets handle the
+    event batching / de-bouncing.
+
+----------------------------------------------------------------------------------------------------------------
+All this assumes that we use a value-push-model, not a value-pull-model. A pull model is much simpler, but cannot
+properly model asynchronous circuits nor logic delays. It can *compute* the delay and compare it to the clock period,
+but the simulation will still act as if there were no delay at all. The push model, in contrast, will properly
+simulate the actual glitches that occur.
+
+Also, a pull model needs a workaround for things like an output wired to a LED, because the LED has no clock signal
+that tells it when to sample its input.
+
+With respect to simulator performance, the pull model is better, but likely not by orders of magnitude. Therefore, a
+much better performance solution is to replace parts of the model by a more abstract component, e.g.
+- a simulated CPU instead of a bunch of logic gates
+- a simulated RAM instead of a bunch of logic gates
+- a CPU with integrated RAM and ROM
+    - and possibly integrated clock
+- a CPU with integrated RAM, ROM, clock and software -> abstract component that behaves like the software does
+
+Doing so requires a modeling language that can be sandboxed (JS? Lua?), is easy to use and allows high-performance
+execution.
+
+----------------------------------------------------------------------------------------------------------------
+
+Here is something that component authors could easily get wrong:
+https://stackoverflow.com/questions/69241970/how-do-verilog-and-vhdl-handle-conflicting-assignments-after-ndelta-cycles
+
+Solutions:
+- disallow delta scheduling
+    Will not totally solve the problem though. The evaluation of a logic gate can still be called twice in the same
+    cycle.
+- delay evaluation of the inputs. Easier to implement but not totally correct since one can now trick a gate to
+    produce a value in a shorter delay, by "poking" it before the actual inputs are ready.
+- allow scheduling in a specific delta cycle. Will probably not solve the problem either, as multiple updates in
+    the same cycle can still happen.
+- remove other updates scheduled for the same time, or even all other updates. For logic gates this is actually close
+    to correct since the delay comes from charging output driver gate capacitors. For more complex things it would be
+    the way drivers behave.
+
+-->
+
+The solution is to have at most 1 pending change per driver.
+
+Implementation: It is rather hard to manipulate the event queue, but easy to "disarm" the old event when a new one
+gets scheduled: Just add a flag to the event that prevents it from doing anything, keep a reference to the latest
+value change event, and set the flag when a new one gets scheduled.
+
+Note that the reaction of a net to changes in a driver still happens in an extra delta cycle. This allows to batch
+changes in multiple drivers into a single update. Multiple changes from the same driver in the same cycle are also
+handled, if they occur. This means that if the output changes without delay, we don't have to use a delta cycle
+inside the logic gate. A scheduled event in the logic gate is therefore only needed if a delay > 0 is desired.
+

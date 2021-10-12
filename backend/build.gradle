@@ -1,0 +1,65 @@
+plugins {
+	id "org.sonarqube" version "3.3"
+}
+
+group = 'name.martingeisse'
+version = '0.1'
+
+apply plugin: 'java'
+apply plugin: 'application'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+tasks.withType(JavaCompile) {
+	options.encoding = 'UTF-8'
+}
+mainClassName = "name.martingeisse.electronics_board.backend.Main"
+
+sourceSets.main.java.srcDir 'src/main/generated'
+sourceSets.main.resources.srcDir 'src/main/java'
+sourceSets.main.resources.srcDir 'src/main/generated'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+
+	// logging (should be on top to take precedence over whatever versions other libraries try to include)
+	implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j18-impl', version: '2.14.1'
+	implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.14.1'
+//	implementation group: 'com.lmax', name: 'disruptor', version: '3.2.0'
+
+	// JSRs
+//	implementation 'com.google.code.findbugs:jsr305:3.0.0'
+
+	// web server
+	// Jetty has its own special version of the servlet API...
+	// implementation group: 'javax.servlet', name: 'javax.servlet-api', version: '4.0.1'
+	implementation group: 'org.eclipse.jetty', name: 'jetty-server', version: '11.0.5'
+	implementation group: 'org.eclipse.jetty', name: 'jetty-servlet', version: '11.0.5'
+	implementation group: 'org.eclipse.jetty.websocket', name: 'websocket-jetty-server', version: '11.0.5'
+
+	// REST API
+	implementation group: 'org.glassfish.jersey.containers', name: 'jersey-container-servlet', version: '3.0.2'
+	implementation group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version: '3.0.2'
+	implementation group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: '3.0.2'
+	implementation group: 'org.glassfish.jersey.ext', name: 'jersey-bean-validation', version: '3.0.2'
+
+	// common helper libraries
+	implementation 'org.apache.commons:commons-lang3:3.12.0'
+	implementation 'commons-io:commons-io:2.10.0'
+	implementation 'org.apache.commons:commons-collections4:4.4'
+	implementation 'com.google.guava:guava:30.1.1-jre'
+	implementation 'joda-time:joda-time:2.10.10'
+	implementation 'commons-codec:commons-codec:1.15'
+	
+	// PostgreSQL
+	// implementation 'com.querydsl:querydsl-sql:4.1.3'
+	// implementation 'com.querydsl:querydsl-sql-codegen:4.0.7'
+	// implementation 'org.postgresql:postgresql:9.4.1208.jre7'
+
+}

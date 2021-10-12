@@ -1,0 +1,7 @@
+
+Happens only once for each object, unless moved again after starting the simulation.
+
+The object actually jumps around. This is not a data desync problem: If another browser window is opened after moving
+the objects but before starting the simulation, that window will see the old position and the jump too. Starting
+the simulation actually moves the objects.
+
